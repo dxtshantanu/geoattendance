@@ -3,51 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geolocation and Google Maps</title>
+    <title>Attendance Login</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 </head>
-<body class="container mt-5">
-    <h2>Get Your Location</h2>
-    <p>
-        Click the button below to retrieve your current location and view it on Google Maps.
-    </p>
-    <button id="getLocation" class="btn btn-primary">Get My Location</button>
+<body class="hold-transition login-page">
+    <div class="login-box">
+        <div class="login-logo">
+            <p id="date"></p>
+            <p id="time" class="bold"></p>
+        </div>
 
-    <div id="locationDisplay" class="mt-4" style="display:none;">
-        <h4>Your Current Location:</h4>
-        <p id="locationCoords"></p>
-        <a id="openMaps" href="#" target="_blank" class="btn btn-success">View on Google Maps</a>
+        <div class="login-box-body">
+            <h4 class="login-box-msg">Enter Employee ID</h4>
+
+            <form id="attendance">
+                <div class="form-group">
+                    <select class="form-control" name="status" required>
+                        <option value="in">Time In</option>
+                        <option value="out">Time Out</option>
+                    </select>
+                </div>
+                <div class="form-group has-feedback">
+                    <input type="text" class="form-control input-lg" id="employee" name="employee" placeholder="Employee ID" required>
+                    <span class="glyphicon glyphicon-calendar form-control-feedback"></span>
+                </div>
+                <div class="row">
+                    <div class="col-xs-4">
+                        <button type="submit" class="btn btn-primary btn-block btn-flat" name="signin"><i class="fa fa-sign-in"></i> Sign In</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="alert alert-success alert-dismissible mt-2 text-center" style="display:none;">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+            <span class="result"><i class="icon fa fa-check"></i> <span class="message"></span></span>
+        </div>
+
+        <div class="alert alert-danger alert-dismissible mt-2 text-center" style="display:none;">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+            <span class="result"><i class="icon fa fa-warning"></i> <span class="message"></span></span>
+        </div>
+
+        <div class="mt-4" id="geofenceAlert" style="display:none;">
+            <p class="alert alert-warning">You are outside the geofence area! <a href="#" id="viewGeofence" target="_blank">View Geofence Location on Google Maps</a></p>
+        </div>
     </div>
 
-    <h2 class="mt-5">Geofence Location</h2>
-    <p>Click the link below to view the geofence location on Google Maps:</p>
-    <a href=https://www.google.com/maps/dir/126A,+Rajnagar,+Nagpur,+Maharashtra+440013/Durga+Mata+Mandir+Chowk,+Rajnagar,+Nagpur,+Maharashtra/@21.1707082,79.0740928,17z/data=!3m1!4b1!4m14!4m13!1m5!1m1!1s0x3bd4c11ccfa8b24d:0x3535dccdb03ebfe9!2m2!1d79.0763718!2d21.1716434!1m5!1m1!1s0x3bd4c11d3c15630f:0x46791fa466d86be5!2m2!1d79.0769502!2d21.1697629!3e2?entry=ttu&g_ep=EgoyMDI0MTAwMi4xIKXMDSoASAFQAw%3D%3D" target="_blank" class="btn btn-secondary">
-        View Geofence Location on Google Maps
-    </a>
-
     <script type="text/javascript">
-        $(document).ready(function() {
-            $('#getLocation').on('click', function() {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(function(position) {
-                        const user_lat = position.coords.latitude;
-                        const user_lng = position.coords.longitude;
+        $(function() {
+            var geofence_lat = 21.171653404667918; // Geofence Latitude
+            var geofence_lng = 79.07636576502225; // Geofence Longitude
+            var geofence_radius = 100; // Geofence radius in meters
+            var isInsideGeofence = false; // Flag to track if inside the geofence
 
-                        // Display the user's coordinates
-                        $('#locationCoords').html(`Latitude: ${user_lat}, Longitude: ${user_lng}`);
-                        
-                        // Construct the Google Maps link
-                        $('#openMaps').attr('href', `https://www.google.com/maps/@${user_lat},${user_lng},15z`);
-                        
-                        // Show the location display
-                        $('#locationDisplay').show();
-                    }, function() {
-                        alert("Unable to retrieve your location.");
-                    });
+            function calculateDistance(lat1, lon1, lat2, lon2) {
+                const R = 6371000; // Radius of the Earth in meters
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                          Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                return R * c; // Distance in meters
+            }
+
+            function checkGeofence(user_lat, user_lng) {
+                const distance = calculateDistance(user_lat, user_lng, geofence_lat, geofence_lng);
+                console.log(`User Latitude: ${user_lat}, User Longitude: ${user_lng}`); // Log user location
+                console.log(`Distance from geofence: ${distance} meters`); // Log the distance
+
+                if (distance > geofence_radius) {
+                    isInsideGeofence = false; // Set the flag to false if outside
+                    $('#geofenceAlert').show();
+                    $('#viewGeofence').attr('href', `https://www.google.com/maps/@${geofence_lat},${geofence_lng},15z`);
                 } else {
-                    alert("Geolocation is not supported by this browser.");
+                    isInsideGeofence = true; // Set the flag to true if inside
+                    $('#geofenceAlert').hide();
                 }
+            }
+
+            // Get the user's current position
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const user_lat = position.coords.latitude;
+                const user_lng = position.coords.longitude;
+                checkGeofence(user_lat, user_lng);
+            }, function() {
+                alert("Geolocation is not enabled or permission denied.");
+            });
+
+            // Update the date and time display every second
+            var interval = setInterval(function() {
+                var momentNow = moment();
+                $('#date').html(momentNow.format('dddd').substring(0, 3).toUpperCase() + ' - ' + momentNow.format('MMMM DD, YYYY'));
+                $('#time').html(momentNow.format('hh:mm:ss A'));
+            }, 1000);
+
+            // Handle form submission
+            $('#attendance').submit(function(e) {
+                e.preventDefault();
+
+                // Check if the user is inside the geofence before proceeding
+                if (!isInsideGeofence) {
+                    $('.alert').hide();
+                    $('.alert-danger').show();
+                    $('.message').html('You are outside the geofence area and cannot mark attendance.');
+                    return; // Prevent form submission
+                }
+
+                // Serialize the form data
+                var attendance = $(this).serialize();
+                console.log("Serialized Data: " + attendance); // Log serialized data
+
+                // Submit the attendance data to the server
+                $.ajax({
+                    type: 'POST',
+                    url: 'attendance.php', // Adjust this to your server-side script
+                    data: attendance,
+                    dataType: 'json',
+                    success: function(response) {
+                        console.log("Response: ", response); // Log response
+                        if (response.error) {
+                            $('.alert').hide();
+                            $('.alert-danger').show();
+                            $('.message').html(response.message);
+                        } else {
+                            $('.alert').hide();
+                            $('.alert-success').show();
+                            $('.message').html(response.message);
+                            $('#employee').val(''); // Clear the input field
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.log("AJAX Error: ", error); // Log AJAX error
+                        $('.alert').hide();
+                        $('.alert-danger').show();
+                        $('.message').html('An error occurred while processing your request.');
+                    }
+                });
             });
         });
     </script>
