@@ -51,7 +51,8 @@
         $(function() {
             var geofence_lat = 21.171653404667918;
             var geofence_lng = 79.07636576502225;
-            var geofence_radius = 1000; // in meters
+            var geofence_radius = 100000; // in meters
+            var isInsideGeofence = false; // Flag to track if inside the geofence
 
             function calculateDistance(lat1, lon1, lat2, lon2) {
                 const R = 6371000; // Radius of the Earth in meters
@@ -75,7 +76,10 @@
                 const distance = calculateDistance(user_lat, user_lng, geofence_lat, geofence_lng);
 
                 if (distance > geofence_radius) {
+                    isInsideGeofence = false; // Set the flag to false if outside
                     showOutsideGeofenceAlert();
+                } else {
+                    isInsideGeofence = true; // Set the flag to true if inside
                 }
             }, function() {
                 alert("Geolocation is not enabled or permission denied.");
@@ -89,6 +93,16 @@
 
             $('#attendance').submit(function(e) {
                 e.preventDefault();
+
+                // Check if the user is inside the geofence before proceeding
+                if (!isInsideGeofence) {
+                    $('.alert').hide();
+                    $('.alert-danger').show();
+                    $('.message').html('You are outside the geofence area and cannot mark attendance.');
+                    return; // Prevent form submission
+                }
+
+                // Serialize the form data
                 var attendance = $(this).serialize();
                 $.ajax({
                     type: 'POST',
@@ -108,7 +122,6 @@
                         }
                     },
                     error: function(xhr, status, error) {
-                        // Handle errors from the server
                         $('.alert').hide();
                         $('.alert-danger').show();
                         $('.message').html('An error occurred while processing your request.');
