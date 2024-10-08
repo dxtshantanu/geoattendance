@@ -21,13 +21,13 @@
 
             <form id="attendance">
                 <div class="form-group">
-                    <select class="form-control" name="status">
+                    <select class="form-control" name="status" required>
                         <option value="in">Time In</option>
                         <option value="out">Time Out</option>
                     </select>
                 </div>
                 <div class="form-group has-feedback">
-                    <input type="text" class="form-control input-lg" id="employee" name="employee" required>
+                    <input type="text" class="form-control input-lg" id="employee" name="employee" placeholder="Employee ID" required>
                     <span class="glyphicon glyphicon-calendar form-control-feedback"></span>
                 </div>
                 <div class="row">
@@ -37,10 +37,12 @@
                 </div>
             </form>
         </div>
+
         <div class="alert alert-success alert-dismissible mt-2 text-center" style="display:none;">
             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
             <span class="result"><i class="icon fa fa-check"></i> <span class="message"></span></span>
         </div>
+
         <div class="alert alert-danger alert-dismissible mt-2 text-center" style="display:none;">
             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
             <span class="result"><i class="icon fa fa-warning"></i> <span class="message"></span></span>
@@ -49,9 +51,9 @@
 
     <script type="text/javascript">
         $(function() {
-            var geofence_lat = 21.171653404667918;
-            var geofence_lng = 79.07636576502225;
-            var geofence_radius = 100000; // in meters
+            var geofence_lat = 21.171653404667918; // Geofence Latitude
+            var geofence_lng = 79.07636576502225; // Geofence Longitude
+            var geofence_radius = 100000; // Geofence radius in meters
             var isInsideGeofence = false; // Flag to track if inside the geofence
 
             function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -69,11 +71,14 @@
                 alert("You are outside the allowed geofence area. Please move to the designated area.");
             }
 
+            // Get the user's current position
             navigator.geolocation.getCurrentPosition(function(position) {
                 const user_lat = position.coords.latitude;
                 const user_lng = position.coords.longitude;
 
                 const distance = calculateDistance(user_lat, user_lng, geofence_lat, geofence_lng);
+                console.log(`User Latitude: ${user_lat}, User Longitude: ${user_lng}`); // Log user location
+                console.log(`Distance from geofence: ${distance} meters`); // Log the distance
 
                 if (distance > geofence_radius) {
                     isInsideGeofence = false; // Set the flag to false if outside
@@ -85,12 +90,14 @@
                 alert("Geolocation is not enabled or permission denied.");
             });
 
+            // Update the date and time display every second
             var interval = setInterval(function() {
                 var momentNow = moment();
                 $('#date').html(momentNow.format('dddd').substring(0, 3).toUpperCase() + ' - ' + momentNow.format('MMMM DD, YYYY'));
                 $('#time').html(momentNow.format('hh:mm:ss A'));
-            }, 100);
+            }, 1000);
 
+            // Handle form submission
             $('#attendance').submit(function(e) {
                 e.preventDefault();
 
@@ -104,12 +111,16 @@
 
                 // Serialize the form data
                 var attendance = $(this).serialize();
+                console.log("Serialized Data: " + attendance); // Log serialized data
+
+                // Submit the attendance data to the server
                 $.ajax({
                     type: 'POST',
                     url: 'attendance.php', // Adjust this to your server-side script
                     data: attendance,
                     dataType: 'json',
                     success: function(response) {
+                        console.log("Response: ", response); // Log response
                         if (response.error) {
                             $('.alert').hide();
                             $('.alert-danger').show();
@@ -118,10 +129,11 @@
                             $('.alert').hide();
                             $('.alert-success').show();
                             $('.message').html(response.message);
-                            $('#employee').val('');
+                            $('#employee').val(''); // Clear the input field
                         }
                     },
                     error: function(xhr, status, error) {
+                        console.log("AJAX Error: ", error); // Log AJAX error
                         $('.alert').hide();
                         $('.alert-danger').show();
                         $('.message').html('An error occurred while processing your request.');
