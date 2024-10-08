@@ -49,13 +49,45 @@
 
     <script type="text/javascript">
         $(function() {
+            var geofence_lat = 21.171653404667918;
+            var geofence_lng = 79.07636576502225;
+            var geofence_radius = 100; // in meters
+
+            function calculateDistance(lat1, lon1, lat2, lon2) {
+                const R = 6371000; // Radius of the Earth in meters
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                          Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                return R * c; // Distance in meters
+            }
+
+            function showOutsideGeofenceAlert() {
+                alert("You are outside the allowed geofence area. Please move to the designated area.");
+            }
+
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const user_lat = position.coords.latitude;
+                const user_lng = position.coords.longitude;
+
+                const distance = calculateDistance(user_lat, user_lng, geofence_lat, geofence_lng);
+
+                if (distance > geofence_radius) {
+                    showOutsideGeofenceAlert();
+                }
+            }, function() {
+                alert("Geolocation is not enabled or permission denied.");
+            });
+
             var interval = setInterval(function() {
                 var momentNow = moment();
-                $('#date').html(momentNow.format('dddd').substring(0,3).toUpperCase() + ' - ' + momentNow.format('MMMM DD, YYYY'));  
+                $('#date').html(momentNow.format('dddd').substring(0, 3).toUpperCase() + ' - ' + momentNow.format('MMMM DD, YYYY'));
                 $('#time').html(momentNow.format('hh:mm:ss A'));
             }, 100);
 
-            $('#attendance').submit(function(e){
+            $('#attendance').submit(function(e) {
                 e.preventDefault();
                 var attendance = $(this).serialize();
                 $.ajax({
@@ -63,13 +95,12 @@
                     url: 'attendance.php', // Adjust this to your server-side script
                     data: attendance,
                     dataType: 'json',
-                    success: function(response){
-                        if(response.error){
+                    success: function(response) {
+                        if (response.error) {
                             $('.alert').hide();
                             $('.alert-danger').show();
                             $('.message').html(response.message);
-                        }
-                        else{
+                        } else {
                             $('.alert').hide();
                             $('.alert-success').show();
                             $('.message').html(response.message);
